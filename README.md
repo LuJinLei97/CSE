@@ -1,4 +1,4 @@
-<h1 align="center">The Custom Scheme Engine (cse)</h1>
+<h1 align="center"><a href="https://github.com/LuJinLei97/CSE">The Custom Scheme Engine (cse)</a></h1>
 
 ### 简介
 
