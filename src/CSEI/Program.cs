@@ -1,11 +1,16 @@
 ﻿using CSE;
 using CSE.Syntax;
 
+using JinLei.Extensions;
+using JinLei.Utilities;
+
 namespace CSEI;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static void Main(string[] args) => RunInteractive();
+
+    private static void Test()
     {
         var cse = new CustomSchemeEngine();
         cse.LoadCseSyntaxParsers(new FileInfo("../../../Cse.cse.cse"));
@@ -31,5 +36,20 @@ internal class Program
         }
 
         //File.WriteAllText("../../../Cse.cse.cse", JsonSerializer.Serialize(CseCompilerServices.CseSyntaxParsers, CSE.CSE.JsonSerializerOptions));
+    }
+
+    private static void RunInteractive()
+    {
+        var cse = new CustomSchemeEngine();
+        cse.LoadCseSyntaxParsers(new FileInfo("../../../Cse.cse.cse"));
+
+        while(ConsoleUtility.TipAndReadLine("cse text:").Out(out var line).Trim().Equals("esc", StringComparison.CurrentCultureIgnoreCase) == false)
+        {
+            foreach(var node in CseCompilerServices.ParseText(line, cse).Childs)
+            {
+                Console.WriteLine(node.ToString());
+                Console.WriteLine(node?.Expression?.Excute());
+            }
+        }
     }
 }
