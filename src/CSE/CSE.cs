@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.IO.Compression;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 using CSE.Classes;
@@ -11,10 +13,6 @@ namespace CSE;
 public class CustomSchemeEngine
 {
     /*  todo:
-        CseSyntaxNodeExtension.IsKind(string childKind, string parentKind) 用于分类节点,如所有节点都应是 CseSyntaxNode
-        CseSyntaxParser.IgnoreKindTexts 用于忽略某些琐碎节点
-        Expression.ObjectTypeName 定义好默认的几个类型,如number是c#中decimal,用于字符串转换到类型
-        Expression.ObjectValue 为了性能考虑,使用确定类型执行Expression
         完善 CseCLR.Method 对应功能
         完善 生成Exe或dll功能,预计通过AssemblyBuilder.DefineDynamicAssembly(...)生成对应文件
         完善 CSE加载CseSyntaxParser机制,做到在哪个层级目录用哪个层级的Parsers
@@ -36,25 +34,55 @@ public class CustomSchemeEngine
 
     public static CustomSchemeEngine Instance { get; } = new CustomSchemeEngine();
 
-    public Dictionary<string, CseSyntaxParser> CseSyntaxParsers { get => cseSyntaxParsers ??= []; set => cseSyntaxParsers = value; }
+    public virtual Dictionary<string, CseSyntaxParser> CseSyntaxParsers { get => cseSyntaxParsers ??= []; set => cseSyntaxParsers = value; }
     private Dictionary<string, CseSyntaxParser> cseSyntaxParsers;
 
-    public Dictionary<string, CseSyntaxParser> LoadCseSyntaxParsers(FileInfo cseSyntaxParsersFile)
+    public virtual Dictionary<string, CseSyntaxParser> LoadCseSyntaxParsers(FileInfo cseSyntaxParsersFile)
     {
-        if(cseSyntaxParsersFile?.Exists != true)
+        if(cseSyntaxParsersFile?.Exists == true)
         {
-            return CseSyntaxParsers;
-        }
-
-        foreach(var cseSyntaxParser in JsonSerializer.Deserialize<Dictionary<string, CseSyntaxParser>>(File.ReadAllText(cseSyntaxParsersFile.FullName)).Values)
-        {
-            CseCompilerServices.RegisterCseSyntaxParser(cseSyntaxParser, this);
+            if(cseSyntaxParsersFile.Extension.Equals(".xmind", StringComparison.CurrentCultureIgnoreCase))
+            {
+                LoadCseSyntaxParsersByXmind(cseSyntaxParsersFile);
+            } else
+            {
+                foreach(var cseSyntaxParser in JsonSerializer.Deserialize<Dictionary<string, CseSyntaxParser>>(File.ReadAllText(cseSyntaxParsersFile.FullName)).Values)
+                {
+                    CseCompilerServices.RegisterCseSyntaxParser(cseSyntaxParser, this);
+                }
+            }
         }
 
         return CseSyntaxParsers;
     }
 
-    public object RunCseFile(FileInfo cseFile = default, DirectoryInfo workDir = default)
+    public virtual Dictionary<string, CseSyntaxParser> LoadCseSyntaxParsersByXmind(FileInfo cseSyntaxParsersFile)
+    {
+        try
+        {
+            // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
+            // 文本节点的终端节点是以'"'包括的文本
+            // 语句节点的终端节点是最后一级含子节点的节点
+
+            // 解析
+            // 1.文本节点匹配
+            // 2.语句节点按优先级从高到底匹配,当节点列表再无匹配项才可下一个
+            // 3.语句节点按优先级从低到高匹配,当节点列表再无匹配项才可下一个
+
+            var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
+            var syntaxTree = JsonSerializer.Deserialize<JsonNode>(jsonString).Root[0]["rootTopic"];
+            var syntaxNodeRoot = GetChild(syntaxTree, "语法节点");
+            var textNodeRoot = GetChild(syntaxNodeRoot, "文本节点");
+            var statementNodeRoot = GetChild(syntaxNodeRoot, "语句节点");
+
+            JsonArray GetChilds(JsonNode parent) => parent["children"]["attached"] as JsonArray;
+            JsonNode GetChild(JsonNode parent, string childName) => GetChilds(parent).FirstOrDefault(t => t["title"].GetValue<string>() == childName);
+        } catch { }
+
+        return CseSyntaxParsers;
+    }
+
+    public virtual object RunCseFile(FileInfo cseFile = default, DirectoryInfo workDir = default)
     {
         if((workDir ??= cseFile?.Directory) == null)
         {
@@ -84,8 +112,7 @@ public class CustomSchemeEngine
         return RunText(File.ReadAllText(cseFile.FullName));
     }
 
-    public object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Expression?.Excute();
-
+    public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Expression?.Excute();
 }
 
 public static class CseCompilerServices
@@ -185,6 +212,7 @@ public static class CseCLR
         RegisterCommonMethod(new() { Name = "number.Subtract", Delegate = (decimal v1, decimal v2) => decimal.Subtract(v1, v2) });
         RegisterCommonMethod(new() { Name = "number.Multiply", Delegate = (decimal v1, decimal v2) => decimal.Multiply(v1, v2) });
         RegisterCommonMethod(new() { Name = "number.Divide", Delegate = (decimal v1, decimal v2) => decimal.Divide(v1, v2) });
+        RegisterCommonMethod(new() { Name = "object.Get", Delegate = (object v1) => v1 });
         #endregion
     }
 }

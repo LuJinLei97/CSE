@@ -13,6 +13,8 @@ public class CseSyntaxParser
     };
     #endregion
 
+    public virtual int Priority { get; set; }
+
     public virtual Dictionary<string, List<string>> MatchTexts { get; set; }
 
     public virtual Dictionary<string, List<List<string>>> MatchChildKindTextsList { get; set; }

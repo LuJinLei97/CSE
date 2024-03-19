@@ -13,7 +13,8 @@ internal class Program
     private static void Test()
     {
         var cse = new CustomSchemeEngine();
-        cse.LoadCseSyntaxParsers(new FileInfo("../../../Cse.cse.cse"));
+        //cse.LoadCseSyntaxParsers(new FileInfo("../../../Cse.cse.cse"));
+        cse.LoadCseSyntaxParsers(new FileInfo("../../../../../CSE语法树.xmind"));
 
         var root = CseSyntaxNode.DefaultCseSyntaxNode;
 
@@ -41,7 +42,8 @@ internal class Program
     private static void RunInteractive()
     {
         var cse = new CustomSchemeEngine();
-        cse.LoadCseSyntaxParsers(new FileInfo("../../../Cse.cse.cse"));
+        //cse.LoadCseSyntaxParsers(new FileInfo("../../../Cse.cse.cse"));
+        cse.LoadCseSyntaxParsers(new FileInfo("../../../../../CSE语法树.xmind"));
 
         while(ConsoleUtility.TipAndReadLine("cse text:").Out(out var line).Trim().Equals("esc", StringComparison.CurrentCultureIgnoreCase) == false)
         {
