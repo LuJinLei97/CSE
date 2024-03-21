@@ -6,7 +6,6 @@ using CSE.Syntax;
 
 using JinLei.Extensions;
 
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace CSE;
@@ -28,8 +27,6 @@ public class CustomSchemeEngine
         Method(MethodCallExpression p) => Method(Method1(...))
     */
 
-    public const string FileExtension = ".cse";
-
     public static CustomSchemeEngine Instance { get; } = new CustomSchemeEngine();
 
     public virtual Dictionary<string, CseSyntaxParser> CseSyntaxParsers { get => cseSyntaxParsers ??= []; set => cseSyntaxParsers = value; }
@@ -41,72 +38,24 @@ public class CustomSchemeEngine
         {
             if(cseSyntaxParsersFile.Extension.Equals(".xmind", StringComparison.CurrentCultureIgnoreCase))
             {
-                LoadCseSyntaxParsersByXmind(cseSyntaxParsersFile);
-            } else
-            {
-                foreach(var cseSyntaxParser in JsonSerializer.CreateDefault().Deserialize<Dictionary<string, CseSyntaxParser>>(new JsonTextReader(new StreamReader(File.ReadAllText(cseSyntaxParsersFile.FullName)))).Values)
+                try
                 {
-                    CseCompilerServices.RegisterCseSyntaxParser(cseSyntaxParser, this);
-                }
+                    // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
+                    // 文本节点的终端节点是以'"'包括的文本
+                    // 语句节点的终端节点是最后一级含子节点的节点
+
+                    var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
+                    var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
+                    var syntaxNodeRoot = GetChild(syntaxTree, "语法节点");
+                    var textNodeRoot = GetChild(syntaxNodeRoot, "文本节点");
+                    var statementNodeRoot = GetChild(syntaxNodeRoot, "语句节点");
+
+                    JToken GetChild(JToken parent, string childName) => parent["children"]["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs.FirstOrDefault(t => t["title"].Value<string>() == childName));
+                } catch { }
             }
         }
 
         return CseSyntaxParsers;
-    }
-
-    public virtual Dictionary<string, CseSyntaxParser> LoadCseSyntaxParsersByXmind(FileInfo cseSyntaxParsersFile)
-    {
-        try
-        {
-            // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
-            // 文本节点的终端节点是以'"'包括的文本
-            // 语句节点的终端节点是最后一级含子节点的节点
-
-            // 解析
-            // 1.文本节点匹配
-            // 2.语句节点按优先级从高到低匹配,当节点列表再无匹配项才可下一个
-            // 3.语句节点按优先级从高到低匹配,当节点列表再无匹配项才可下一个(高优先级Parser匹配低优先级Parser的解析结果)
-
-            var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
-            var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
-            var syntaxNodeRoot = GetChild(syntaxTree, "语法节点");
-            var textNodeRoot = GetChild(syntaxNodeRoot, "文本节点");
-            var statementNodeRoot = GetChild(syntaxNodeRoot, "语句节点");
-
-            JToken GetChild(JToken parent, string childName) => parent["children"]["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs.FirstOrDefault(t => t["title"].Value<string>() == childName));
-        } catch { }
-
-        return CseSyntaxParsers;
-    }
-
-    public virtual object RunCseFile(FileInfo cseFile = default, DirectoryInfo workDir = default)
-    {
-        if((workDir ??= cseFile?.Directory) == null)
-        {
-            return default;
-        }
-
-        if(cseFile?.Exists != true)
-        {
-            return default;
-        }
-
-        var secondFileExtension = Path.GetExtension(Path.GetFileNameWithoutExtension(cseFile.FullName)).TrimStart('.');
-
-        var cseSyntaxParsersFiles = new[]
-        {
-            new FileInfo(Path.Combine(workDir.FullName, "Cse.cse.cse")),
-            new FileInfo(Path.Combine(workDir.FullName, $"{secondFileExtension}.{secondFileExtension}.cse")),
-            new FileInfo(Path.Combine(cseFile.Directory.FullName, "Cse.cse.cse")),
-            new FileInfo(Path.Combine(cseFile.Directory.FullName, $"{secondFileExtension}.{secondFileExtension}.cse")),
-        };
-
-        foreach(var cseSyntaxParsersFile in cseSyntaxParsersFiles.GroupBy(t => t.FullName.ToLower().Trim()).Select(t => t.FirstOrDefault()))
-        {
-            LoadCseSyntaxParsers(cseSyntaxParsersFile);
-        }
-
-        return RunText(File.ReadAllText(cseFile.FullName));
     }
 
     public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Expression?.Excute();
@@ -120,18 +69,24 @@ public static class CseCompilerServices
 
     public static CseSyntaxNode ParseText(string text, CustomSchemeEngine customSchemeEngine = default)
     {
-        if(text == null)
+        var root = new CseSyntaxNode() { Childs = [] };
+
+        if(text.IsNull())
         {
-            return CseSyntaxNode.DefaultCseSyntaxNode;
+            goto Result;
         }
 
         customSchemeEngine ??= CustomSchemeEngine.Instance;
 
-        var root = new CseSyntaxNode() { Childs = [] };
+        // 解析
+        // 1.文本节点匹配
+        // 2.语句节点按优先级从高到低匹配,当节点列表再无匹配项才可下一个
+        // 3.语句节点按优先级从高到低匹配,当节点列表再无匹配项才可下一个(高优先级Parser匹配低优先级Parser的解析结果)
 
         ParseToken();
         MergeNodes();
 
+    Result:
         return root;
 
         void ParseToken()

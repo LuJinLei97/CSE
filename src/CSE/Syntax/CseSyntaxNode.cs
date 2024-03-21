@@ -23,6 +23,8 @@ public class CseSyntaxNode : TreeNode<CseSyntaxNode>
     public virtual string Text { get => Childs?.Aggregate(string.Empty, (r, t) => $"{r}{t?.Text}") ?? text; set => text = value; }
     protected string text;
 
+    public virtual CseSyntaxTreeNode CseSyntaxTreeNode { get; set; }
+
     [JsonIgnore]
     public virtual string KindText { get => kindText ?? DefaultCseSyntaxNode.KindText; set => kindText = value; }
     protected string kindText;
