@@ -1,12 +1,13 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-
+﻿
 using CSE.Extensions;
 
 using JinLei.Classes;
 
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CSE.Syntax;
 
@@ -85,7 +86,7 @@ public class CseSyntaxNode : TreeNode<CseSyntaxNode>
 
     public virtual int EndPosition => Childs?.LastOrDefault()?.EndPosition ?? Position + Text?.Length ?? 0;
 
-    public override string ToString() => JsonSerializer.Serialize(this, CustomSchemeEngine.JsonSerializerOptions);
+    public override string ToString() => JToken.FromObject(this).ToString();
     #endregion
 }
 

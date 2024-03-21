@@ -1,13 +1,13 @@
 ﻿using System.IO.Compression;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 
 using CSE.Classes;
 using CSE.Parser;
 using CSE.Syntax;
 
 using JinLei.Extensions;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CSE;
 public class CustomSchemeEngine
@@ -30,8 +30,6 @@ public class CustomSchemeEngine
 
     public const string FileExtension = ".cse";
 
-    public static JsonSerializerOptions JsonSerializerOptions { get; } = new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, ReferenceHandler = ReferenceHandler.IgnoreCycles };
-
     public static CustomSchemeEngine Instance { get; } = new CustomSchemeEngine();
 
     public virtual Dictionary<string, CseSyntaxParser> CseSyntaxParsers { get => cseSyntaxParsers ??= []; set => cseSyntaxParsers = value; }
@@ -46,7 +44,7 @@ public class CustomSchemeEngine
                 LoadCseSyntaxParsersByXmind(cseSyntaxParsersFile);
             } else
             {
-                foreach(var cseSyntaxParser in JsonSerializer.Deserialize<Dictionary<string, CseSyntaxParser>>(File.ReadAllText(cseSyntaxParsersFile.FullName)).Values)
+                foreach(var cseSyntaxParser in JsonSerializer.CreateDefault().Deserialize<Dictionary<string, CseSyntaxParser>>(new JsonTextReader(new StreamReader(File.ReadAllText(cseSyntaxParsersFile.FullName)))).Values)
                 {
                     CseCompilerServices.RegisterCseSyntaxParser(cseSyntaxParser, this);
                 }
@@ -66,17 +64,16 @@ public class CustomSchemeEngine
 
             // 解析
             // 1.文本节点匹配
-            // 2.语句节点按优先级从高到底匹配,当节点列表再无匹配项才可下一个
-            // 3.语句节点按优先级从低到高匹配,当节点列表再无匹配项才可下一个
+            // 2.语句节点按优先级从高到低匹配,当节点列表再无匹配项才可下一个
+            // 3.语句节点按优先级从高到低匹配,当节点列表再无匹配项才可下一个(高优先级Parser匹配低优先级Parser的解析结果)
 
             var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
-            var syntaxTree = JsonSerializer.Deserialize<JsonNode>(jsonString).Root[0]["rootTopic"];
+            var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
             var syntaxNodeRoot = GetChild(syntaxTree, "语法节点");
             var textNodeRoot = GetChild(syntaxNodeRoot, "文本节点");
             var statementNodeRoot = GetChild(syntaxNodeRoot, "语句节点");
 
-            JsonArray GetChilds(JsonNode parent) => parent["children"]["attached"] as JsonArray;
-            JsonNode GetChild(JsonNode parent, string childName) => GetChilds(parent).FirstOrDefault(t => t["title"].GetValue<string>() == childName);
+            JToken GetChild(JToken parent, string childName) => parent["children"]["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs.FirstOrDefault(t => t["title"].Value<string>() == childName));
         } catch { }
 
         return CseSyntaxParsers;
