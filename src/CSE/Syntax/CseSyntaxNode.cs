@@ -1,10 +1,7 @@
-﻿
-using CSE.Extensions;
+﻿using CSE.Extensions;
 
 using JinLei.Classes;
-
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
+using JinLei.Extensions;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -16,64 +13,26 @@ namespace CSE.Syntax;
 /// </summary>
 public class CseSyntaxNode : TreeNode<CseSyntaxNode>
 {
-    #region static property
-    public static CseSyntaxNode DefaultCseSyntaxNode => new() { KindText = SyntaxKind.UnknownAccessorDeclaration.ToString() };
-    #endregion
-
-    public virtual string Text { get => Childs?.Aggregate(string.Empty, (r, t) => $"{r}{t?.Text}") ?? text; set => text = value; }
+    public virtual string Text { get => Childs?.Aggregate(string.Empty, (r, t) => $"{r}{t?.Text}") ?? text ?? CseSyntaxTreeNode.MatchPatterns.FirstOrDefault(); set => text = value; }
     protected string text;
 
+    [JsonIgnore]
     public virtual CseSyntaxTreeNode CseSyntaxTreeNode { get; set; }
 
     [JsonIgnore]
-    public virtual string KindText { get => kindText ?? DefaultCseSyntaxNode.KindText; set => kindText = value; }
-    protected string kindText;
-
-    public virtual string MatchedKindText { get => matchedKindText ?? KindText; set => matchedKindText = value; }
-    protected string matchedKindText;
-
-    [JsonIgnore]
-    public virtual Classes.Expression Expression
-    {
-        get
-        {
-            if(expression != null)
-            {
-                expression.CseSyntaxNode = this;
-            }
-
-            return expression;
-        }
-        set
-        {
-            expression = value;
-            if(expression != null)
-            {
-                expression.CseSyntaxNode = this;
-            }
-        }
-    }
+    public virtual Classes.Expression Expression => expression == CseSyntaxTreeNode?.Expression ? expression : CseSyntaxTreeNode?.Expression?.Clone()?.Do(t => { t.CseSyntaxNode = this; expression = t; });
     protected Classes.Expression expression;
-
-    [JsonIgnore]
-    public virtual Func<AnalysisResult> AnalyzeFunc { get; set; }
 
     #region 低功能性
     public virtual CseSyntaxNode Clone()
     {
         var result = new CseSyntaxNode()
         {
-            KindText = KindText,
-            MatchedKindText = MatchedKindText,
-
-            Text = Text,
-            Position = Position,
+            CseSyntaxTreeNode = CseSyntaxTreeNode,
 
             Childs = Childs?.Select(t => t.Clone()).ToObservableCollection(),
-            //Parent = Parent,
 
-            Expression = Expression?.Clone(),
-            AnalyzeFunc = AnalyzeFunc,
+            Position = Position,
         };
 
         return result;
@@ -81,12 +40,12 @@ public class CseSyntaxNode : TreeNode<CseSyntaxNode>
 
     public virtual int Position
     {
-        get => Childs?.FirstOrDefault()?.Position ?? position;
+        get => Childs?.Min(t => t.Position) ?? position;
         set => position = value;
     }
     protected int position;
 
-    public virtual int EndPosition => Childs?.LastOrDefault()?.EndPosition ?? Position + Text?.Length ?? 0;
+    public virtual int EndPosition => Childs?.Max(t => t.EndPosition) ?? Position + (Text?.Length ?? 0);
 
     public override string ToString() => JToken.FromObject(this).ToString();
     #endregion
@@ -94,7 +53,4 @@ public class CseSyntaxNode : TreeNode<CseSyntaxNode>
 
 public static class CseSyntaxNodeExtension
 {
-    public static bool IsTrivia(this CseSyntaxNode cseSyntaxNode) => cseSyntaxNode.KindText.EndsWith("Trivia");
-
-    public static bool IsExpression(this CseSyntaxNode cseSyntaxNode) => cseSyntaxNode.KindText.EndsWith("Expression");
 }

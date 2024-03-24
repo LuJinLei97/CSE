@@ -1,7 +1,7 @@
 ﻿using CSE.Syntax;
 
 namespace CSE.Classes;
-public class Expression
+public class Expression : ICloneable, IEquatable<Expression>
 {
     public virtual string MethodName { get; set; }
 
@@ -28,6 +28,10 @@ public class Expression
 
     #region 低功能性
     public virtual Expression Clone() => new() { MethodName = MethodName, ChildValueIndexs = ChildValueIndexs };
+
+    public virtual bool Equals(Expression other) => other.MethodName == MethodName && other?.ChildValueIndexs?.SequenceEqual(this?.ChildValueIndexs) == true;
+
+    object ICloneable.Clone() => Clone();
 
     public virtual CseSyntaxNode CseSyntaxNode { get; set; }
     #endregion

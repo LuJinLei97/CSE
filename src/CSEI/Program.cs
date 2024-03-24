@@ -13,9 +13,9 @@ internal class Program
     private static void Test()
     {
         var cse = new CustomSchemeEngine();
-        cse.LoadCseSyntaxParsers(new FileInfo("../../../../../CSE语法树.xmind"));
+        cse.LoadCseSyntaxTree(new FileInfo("../../../../../CSE语法树.xmind"));
 
-        var root = CseSyntaxNode.DefaultCseSyntaxNode;
+        var root = new CseSyntaxNode();
 
         root = CseCompilerServices.ParseText(File.ReadAllText("../../../Program.cs"), cse);
         foreach(var cseSyntaxNode in root.Childs)
@@ -29,7 +29,7 @@ internal class Program
         root = CseCompilerServices.ParseText("2*4*8", cse);
         root = CseCompilerServices.ParseText("8/4/2", cse);
         root = CseCompilerServices.ParseText("-1", cse);
-        foreach(var cseSyntaxNode in root.Childs.Where(t => t.MatchedKindText != CseSyntaxNode.DefaultCseSyntaxNode.KindText))
+        foreach(var cseSyntaxNode in root.Childs.Where(t => t.CseSyntaxTreeNode.IsKind("琐碎节点") == false))
         {
             Console.WriteLine(cseSyntaxNode.ToString());
             Console.Write(cseSyntaxNode?.Expression?.Excute());
@@ -39,7 +39,11 @@ internal class Program
     private static void RunInteractive()
     {
         var cse = new CustomSchemeEngine();
-        cse.LoadCseSyntaxParsers(new FileInfo("../../../../../CSE语法树.xmind"));
+        cse.LoadCseSyntaxTree(new FileInfo("../../../../../CSE语法树.xmind"));
+
+        var ns = cse.CseSyntaxTree.EnumerateNodesFromRoot("数字", 2);
+        var nf = ns.FirstOrDefault();
+        var nl = ns.LastOrDefault();
 
         while(ConsoleUtility.TipAndReadLine("cse text:").Out(out var line).Trim().Equals("esc", StringComparison.CurrentCultureIgnoreCase) == false)
         {

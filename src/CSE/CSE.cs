@@ -1,7 +1,6 @@
 ﻿using System.IO.Compression;
 
 using CSE.Classes;
-using CSE.Parser;
 using CSE.Syntax;
 
 using JinLei.Extensions;
@@ -29,33 +28,32 @@ public class CustomSchemeEngine
 
     public static CustomSchemeEngine Instance { get; } = new CustomSchemeEngine();
 
-    public virtual Dictionary<string, CseSyntaxParser> CseSyntaxParsers { get => cseSyntaxParsers ??= []; set => cseSyntaxParsers = value; }
-    private Dictionary<string, CseSyntaxParser> cseSyntaxParsers;
+    public virtual CseSyntaxTreeNode CseSyntaxTree { get; set; } = new();
 
-    public virtual Dictionary<string, CseSyntaxParser> LoadCseSyntaxParsers(FileInfo cseSyntaxParsersFile)
+    public virtual CseSyntaxTreeNode LoadCseSyntaxTree(FileInfo cseSyntaxParsersFile)
     {
         if(cseSyntaxParsersFile?.Exists == true)
         {
             if(cseSyntaxParsersFile.Extension.Equals(".xmind", StringComparison.CurrentCultureIgnoreCase))
             {
-                try
-                {
-                    // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
-                    // 文本节点的终端节点是以'"'包括的文本
-                    // 语句节点的终端节点是最后一级含子节点的节点
+                //try
+                //{
+                // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
+                // 文本节点的终端节点是最后一级以'"'包括的文本
+                // 语句节点的终端节点是最后一级含子节点的节点
 
-                    var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
-                    var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
-                    var syntaxNodeRoot = GetChild(syntaxTree, "语法节点");
-                    var textNodeRoot = GetChild(syntaxNodeRoot, "文本节点");
-                    var statementNodeRoot = GetChild(syntaxNodeRoot, "语句节点");
+                var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
+                var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
 
-                    JToken GetChild(JToken parent, string childName) => parent["children"]["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs.FirstOrDefault(t => t["title"].Value<string>() == childName));
-                } catch { }
+                CseSyntaxTree = new CseSyntaxTreeNode().Do(t => t.Load(syntaxTree));
+                //} catch(Exception e)
+                //{
+                //    throw e;
+                //}
             }
         }
 
-        return CseSyntaxParsers;
+        return CseSyntaxTree;
     }
 
     public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Expression?.Excute();
@@ -63,10 +61,6 @@ public class CustomSchemeEngine
 
 public static class CseCompilerServices
 {
-    public static Dictionary<string, CseSyntaxParser> GetCseSyntaxParsers(CustomSchemeEngine customSchemeEngine = default) => (customSchemeEngine ?? CustomSchemeEngine.Instance).CseSyntaxParsers;
-
-    public static void RegisterCseSyntaxParser(CseSyntaxParser cseSyntaxParser, CustomSchemeEngine customSchemeEngine = default) => GetCseSyntaxParsers(customSchemeEngine)[cseSyntaxParser.KindText] = cseSyntaxParser;
-
     public static CseSyntaxNode ParseText(string text, CustomSchemeEngine customSchemeEngine = default)
     {
         var root = new CseSyntaxNode() { Childs = [] };
@@ -91,27 +85,30 @@ public static class CseCompilerServices
 
         void ParseToken()
         {
-            var cseSyntaxParsers = GetCseSyntaxParsers(customSchemeEngine).Values.Where(t => t.MatchTexts != null).SelectMany(t => t.MatchTexts.SelectMany(t1 => t1.Value, (t1, t2) => (Text: t2, MatchKindText: t1.Key, Parser: t))).OrderByDescending(t => t.Text.Length);
+            //var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.Childs
 
             var position = 0;
             while(position < text.Length)
             {
-                var cseSyntaxNode = CseSyntaxNode.DefaultCseSyntaxNode;
-                cseSyntaxNode.Text = text[position].ToString();
-                cseSyntaxNode.Position = position;
-
-                foreach(var (Text, MatchKindText, Parser) in cseSyntaxParsers)
+                var cseSyntaxNode = new CseSyntaxNode
                 {
-                    var parser = Parser.Clone();
-                    parser.MatchTexts = new() { [MatchKindText] = [Text] };
-                    var parseResult = parser.Match(text.Substring(position, Math.Min(Text.Length, text.Length - position)), default);
-                    if(parseResult != null)
-                    {
-                        cseSyntaxNode = parseResult;
-                        cseSyntaxNode.Position = position;
-                        break;
-                    }
-                }
+                    Text = text[position].ToString(),
+                    Position = position,
+                    CseSyntaxTreeNode = customSchemeEngine.CseSyntaxTree.EnumerateNodesFromRoot("未明确节点", 1).FirstOrDefault(),
+                };
+
+                //foreach(var textParser in customSchemeEngine.CseSyntaxTree.GetChilds("文本节点", Syntax.SearchOption.AllTreeNode, 1).FirstOrDefault())
+                //{
+                //    var parser = Parser.Clone();
+                //    parser.MatchTexts = new() { [MatchKindText] = [Text] };
+                //    var parseResult = parser.Match(text.Substring(position, Math.Min(Text.Length, text.Length - position)), default);
+                //    if(parseResult != null)
+                //    {
+                //        cseSyntaxNode = parseResult;
+                //        cseSyntaxNode.Position = position;
+                //        break;
+                //    }
+                //}
 
                 position = cseSyntaxNode.EndPosition;
                 root.Childs.Add(cseSyntaxNode);
@@ -120,31 +117,31 @@ public static class CseCompilerServices
 
         void MergeNodes()
         {
-            var cseSyntaxParsers = GetCseSyntaxParsers(customSchemeEngine).Values.Where(t => t.MatchChildKindTextsList != null).SelectMany(t => t.MatchChildKindTextsList.SelectMany(t1 => t1.Value, (t1, t2) => (ChildNodeKindTexts: t2, MatchKindText: t1.Key, Parser: t))).OrderByDescending(t => t.ChildNodeKindTexts.Count);
-            var cseSyntaxParsers1 = cseSyntaxParsers.Where(t => t.ChildNodeKindTexts.All(t1 => t.Parser.MatchChildKindTextsList.ContainsKey(t1) || t1 == t.Parser.KindText));
+            //var cseSyntaxParsers = GetCseSyntaxParsers(customSchemeEngine).Values.Where(t => t.MatchChildKindTextsList != null).SelectMany(t => t.MatchChildKindTextsList.SelectMany(t1 => t1.Value, (t1, t2) => (ChildNodeKindTexts: t2, MatchKindText: t1.Key, Parser: t))).OrderByDescending(t => t.ChildNodeKindTexts.Count);
+            //var cseSyntaxParsers1 = cseSyntaxParsers.Where(t => t.ChildNodeKindTexts.All(t1 => t.Parser.MatchChildKindTextsList.ContainsKey(t1) || t1 == t.Parser.KindText));
 
-            MergeNodes(cseSyntaxParsers1);
-            MergeNodes(cseSyntaxParsers.Except(cseSyntaxParsers1));
+            //MergeNodes(cseSyntaxParsers1);
+            //MergeNodes(cseSyntaxParsers.Except(cseSyntaxParsers1));
 
-            void MergeNodes(IEnumerable<(List<string> ChildNodeKindTexts, string MatchKindText, CseSyntaxParser Parser)> cseSyntaxParsers)
-            {
-                for(var i = 0; i < root.Childs.Count - 1; i++)
-                {
-                    foreach(var (ChildNodeKindTexts, MatchKindText, Parser) in cseSyntaxParsers)
-                    {
-                        var parser = Parser.Clone();
-                        parser.MatchChildKindTextsList = new() { [MatchKindText] = [ChildNodeKindTexts] };
-                        var parseResult = parser.Match(default, root.Childs.GetRange(i, Math.Min(ChildNodeKindTexts.Count, root.Childs.Count - i)));
-                        if(parseResult != null)
-                        {
-                            root.Childs[i] = parseResult;
-                            root.Childs.RemoveRange(i + 1, parseResult.Childs.Count - 1);
-                            i--;
-                            break;
-                        }
-                    }
-                }
-            }
+            //void MergeNodes(IEnumerable<(List<string> ChildNodeKindTexts, string MatchKindText, CseSyntaxParser Parser)> cseSyntaxParsers)
+            //{
+            //    for(var i = 0; i < root.Childs.Count - 1; i++)
+            //    {
+            //        foreach(var (ChildNodeKindTexts, MatchKindText, Parser) in cseSyntaxParsers)
+            //        {
+            //            var parser = Parser.Clone();
+            //            parser.MatchChildKindTextsList = new() { [MatchKindText] = [ChildNodeKindTexts] };
+            //            var parseResult = parser.Match(default, root.Childs.GetRange(i, Math.Min(ChildNodeKindTexts.Count, root.Childs.Count - i)));
+            //            if(parseResult != null)
+            //            {
+            //                root.Childs[i] = parseResult;
+            //                root.Childs.RemoveRange(i + 1, parseResult.Childs.Count - 1);
+            //                i--;
+            //                break;
+            //            }
+            //        }
+            //    }
+            //}
         }
     }
 }
