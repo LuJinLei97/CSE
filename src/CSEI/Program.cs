@@ -41,10 +41,6 @@ internal class Program
         var cse = new CustomSchemeEngine();
         cse.LoadCseSyntaxTree(new FileInfo("../../../../../CSE语法树.xmind"));
 
-        var ns = cse.CseSyntaxTree.EnumerateNodesFromRoot("数字", 2);
-        var nf = ns.FirstOrDefault();
-        var nl = ns.LastOrDefault();
-
         while(ConsoleUtility.TipAndReadLine("cse text:").Out(out var line).Trim().Equals("esc", StringComparison.CurrentCultureIgnoreCase) == false)
         {
             foreach(var node in CseCompilerServices.ParseText(line, cse).Childs)

@@ -11,7 +11,7 @@ namespace CSE;
 public class CustomSchemeEngine
 {
     /*  todo:
-        完善 CseCLR.Method 对应功能
+        完善 CseCLR.Method 对应功能 预计改进成WF(工作流)活动执行
         完善 生成Exe或dll功能,预计通过AssemblyBuilder.DefineDynamicAssembly(...)生成对应文件
         完善 CSE加载CseSyntaxParser机制,做到在哪个层级目录用哪个层级的Parsers
         完善 CSE to C# 转换,用于c#的源生成器以及代码生成
@@ -36,20 +36,20 @@ public class CustomSchemeEngine
         {
             if(cseSyntaxParsersFile.Extension.Equals(".xmind", StringComparison.CurrentCultureIgnoreCase))
             {
-                //try
-                //{
-                // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
-                // 文本节点的终端节点是最后一级以'"'包括的文本
-                // 语句节点的终端节点是最后一级含子节点的节点
+                try
+                {
+                    // 规定语法树下有语法节点,语法节点下有文本节点和语句节点 (后续为配置名称)
+                    // 文本节点的终端节点是最后一级以'"'包括的文本
+                    // 语句节点的终端节点是最后一级含子节点的节点
 
-                var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
-                var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
+                    var jsonString = new StreamReader(ZipFile.OpenRead(cseSyntaxParsersFile.FullName).GetEntry("content.json").Open()).ReadToEnd();
+                    var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
 
-                CseSyntaxTree = new CseSyntaxTreeNode().Do(t => t.Load(syntaxTree));
-                //} catch(Exception e)
-                //{
-                //    throw e;
-                //}
+                    CseSyntaxTree = new CseSyntaxTreeNode().Do(t => t.Load(syntaxTree));
+                } catch(Exception e)
+                {
+                    //throw e;
+                }
             }
         }
 
@@ -71,6 +71,7 @@ public static class CseCompilerServices
         }
 
         customSchemeEngine ??= CustomSchemeEngine.Instance;
+        var unknownNode = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("未明确节点"), Syntax.SearchOption.TopTreeNode, 1).FirstOrDefault();
 
         // 解析
         // 1.文本节点匹配
@@ -85,7 +86,7 @@ public static class CseCompilerServices
 
         void ParseToken()
         {
-            //var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.Childs
+            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("文本节点") && (t?.MatchPatterns?.Count).GetValueOrDefault(0) >= 1, Syntax.SearchOption.Parent).OrderByDescending(t => t.Priority);
 
             var position = 0;
             while(position < text.Length)
@@ -94,21 +95,19 @@ public static class CseCompilerServices
                 {
                     Text = text[position].ToString(),
                     Position = position,
-                    CseSyntaxTreeNode = customSchemeEngine.CseSyntaxTree.EnumerateNodesFromRoot("未明确节点", 1).FirstOrDefault(),
+                    CseSyntaxTreeNode = unknownNode,
                 };
 
-                //foreach(var textParser in customSchemeEngine.CseSyntaxTree.GetChilds("文本节点", Syntax.SearchOption.AllTreeNode, 1).FirstOrDefault())
-                //{
-                //    var parser = Parser.Clone();
-                //    parser.MatchTexts = new() { [MatchKindText] = [Text] };
-                //    var parseResult = parser.Match(text.Substring(position, Math.Min(Text.Length, text.Length - position)), default);
-                //    if(parseResult != null)
-                //    {
-                //        cseSyntaxNode = parseResult;
-                //        cseSyntaxNode.Position = position;
-                //        break;
-                //    }
-                //}
+                foreach(var textParser in cseSyntaxParsers)
+                {
+                    var parseResult = textParser.Match(text.AsMemory(position), default);
+                    if(parseResult.IsNull() == false)
+                    {
+                        cseSyntaxNode = parseResult;
+                        cseSyntaxNode.Position = position;
+                        break;
+                    }
+                }
 
                 position = cseSyntaxNode.EndPosition;
                 root.Childs.Add(cseSyntaxNode);

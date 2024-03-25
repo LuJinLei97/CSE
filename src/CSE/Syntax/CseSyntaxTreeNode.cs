@@ -15,12 +15,12 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 
     public virtual List<string> MatchPatterns { get; set; } = [];
 
-    public virtual int? Priority { get => priority ?? (Parent?.Priority + RelativePriority); set => priority = value; }
+    public virtual int? Priority { get => priority ?? ((Parent?.Priority).GetValueOrDefault(0) + 1 + RelativePriority); set => priority = value; }
     protected int? priority;
 
     public virtual int RelativePriority { get; set; }
 
-    public virtual CseSyntaxNode Match(Memory<char> text, Memory<CseSyntaxNode> nodes)
+    public virtual CseSyntaxNode Match(ReadOnlyMemory<char> text, ReadOnlyMemory<CseSyntaxNode> nodes)
     {
         if(text.Length.Out(out var maxTextLength) >= 1)
         {
@@ -30,6 +30,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
                 return new CseSyntaxNode()
                 {
                     CseSyntaxTreeNode = this,
+                    Text = matchedItem,
                 };
             }
         }
@@ -61,37 +62,6 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
         }
 
         return default;
-    }
-
-    public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodesFromRoot(string kindText = default, int count = int.MaxValue)
-    {
-        if(Childs.IsNull())
-        {
-            yield break;
-        }
-
-        var sum = 0;
-        foreach(var child in Childs)
-        {
-            if(string.IsNullOrWhiteSpace(kindText) || child.IsKind(kindText))
-            {
-                yield return child;
-                if(++sum == count)
-                {
-                    yield break;
-                }
-            } else
-            {
-                foreach(var item in child.EnumerateNodesFromRoot(kindText, count))
-                {
-                    yield return item;
-                    if(++sum == count)
-                    {
-                        yield break;
-                    }
-                }
-            }
-        }
     }
 
     public virtual Expression Expression { get => expression ?? Parent?.Expression; set => expression = value; }
@@ -137,10 +107,52 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 
         JToken GetChild(JToken parent, string childName = default) => parent["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
     }
+
+    public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode> predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue)
+    {
+        if(Childs.IsNull() || count <= 0)
+        {
+            yield break;
+        }
+
+        predicate ??= (t) => true;
+
+        var sum = 0;
+        foreach(var child in Childs)
+        {
+            var isMatched = predicate(child);
+            if(isMatched)
+            {
+                if(searchOption is SearchOption.TopTreeNodeOnly or SearchOption.AllTreeNode or SearchOption.TopTreeNode || searchOption == SearchOption.Parent && (child?.Childs?.Count).GetValueOrDefault(0) >= 1 || searchOption == SearchOption.Child && (child?.Childs?.Count).GetValueOrDefault(0) <= 0)
+                {
+                    yield return child;
+                    if(++sum == count)
+                    {
+                        yield break;
+                    }
+                }
+            }
+
+            if(searchOption is SearchOption.AllTreeNode or SearchOption.Parent or SearchOption.Child || searchOption == SearchOption.TopTreeNode && isMatched == false)
+            {
+                foreach(var item in child.EnumerateNodes(predicate, searchOption, count - sum))
+                {
+                    yield return item;
+                    if(++sum == count)
+                    {
+                        yield break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 public enum SearchOption
 {
     TopTreeNodeOnly,
-    AllTreeNode
+    AllTreeNode,
+    TopTreeNode,
+    Parent,
+    Child,
 }
