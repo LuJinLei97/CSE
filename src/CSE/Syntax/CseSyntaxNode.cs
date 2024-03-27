@@ -11,7 +11,7 @@ namespace CSE.Syntax;
 /// <summary>
 /// 优先以子节点匹配
 /// </summary>
-public class CseSyntaxNode : TreeNode<CseSyntaxNode>
+public class CseSyntaxNode : TreeNode<CseSyntaxNode>, ICloneable
 {
     public virtual string Text { get => Childs?.Aggregate(string.Empty, (r, t) => $"{r}{t?.Text}") ?? text; set => text = value; }
     protected string text;
@@ -37,6 +37,8 @@ public class CseSyntaxNode : TreeNode<CseSyntaxNode>
 
         return result;
     }
+
+    object ICloneable.Clone() => Clone();
 
     public virtual int Position
     {

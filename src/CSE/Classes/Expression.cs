@@ -20,7 +20,7 @@ public class Expression : ICloneable, IEquatable<Expression>
         var args = new object[] { CseSyntaxNode?.Text };
         if(ChildValueIndexs != null && CseSyntaxNode.Childs != null)
         {
-            args = ChildValueIndexs.Select(t => CseSyntaxNode.Childs[t]?.Expression?.Excute() ?? CseSyntaxNode.Childs[t]?.Text).ToArray();
+            args = ChildValueIndexs.Select(t => CseSyntaxNode.Childs[t - 1]?.Expression?.Excute() ?? CseSyntaxNode.Childs[t - 1]?.Text).ToArray();
         }
 
         return CseCLR.CommonMethods[MethodName]?.Delegate?.DynamicInvoke(args);

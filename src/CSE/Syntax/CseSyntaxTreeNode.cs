@@ -15,9 +15,6 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 
     public virtual List<string> MatchPatterns { get; set; } = [];
 
-    public virtual int? Priority { get => priority ?? ((Parent?.Priority).GetValueOrDefault(0) + 1 + RelativePriority); set => priority = value; }
-    protected int? priority;
-
     public virtual int RelativePriority { get; set; }
 
     public virtual CseSyntaxNode Match(ReadOnlyMemory<char> text, ReadOnlyMemory<CseSyntaxNode> nodes)
@@ -78,13 +75,8 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
             foreach(var boundary in cseSyntaxTreeNodeJToken["boundaries"].GetSelfOrEmpty())
             {
                 var (S, E) = boundary["range"].Value<string>().Split(new[] { "(", ",", ")" }, StringSplitOptions.RemoveEmptyEntries).Do(t => (S: int.Parse(t[0]), E: int.Parse(t[1])));
-                if(boundary["title"].Value<string>().TrimStart().Out(out var ps).StartsWith("+") || ps.StartsWith("-"))
-                {
-                    Childs.GetRange(S, E - S + 1).ForEach(t => t.RelativePriority = int.Parse(ps));
-                } else
-                {
-                    Childs.GetRange(S, E - S + 1).ForEach(t => t.Priority = int.Parse(ps));
-                }
+                boundary["title"].Value<string>().TrimStart().Out(out var ps);
+                Childs.GetRange(S, E - S + 1).ForEach(t => t.RelativePriority = int.Parse(ps));
             }
 
             var summaryRanges = cseSyntaxTreeNodeJToken["summaries"].GetSelfOrEmpty().ToDictionary(t => t["topicId"].Value<string>(), t => t["range"].Value<string>());
@@ -103,6 +95,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
         } else
         {
             Parent?.MatchPatterns?.Add(KindText);
+            this?.MatchPatterns?.Add(KindText);
         }
 
         JToken GetChild(JToken parent, string childName = default) => parent["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
@@ -118,7 +111,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
         predicate ??= (t) => true;
 
         var sum = 0;
-        foreach(var child in Childs)
+        foreach(var child in Childs.OrderByDescending(t => t.RelativePriority))
         {
             var isMatched = predicate(child);
             if(isMatched)
