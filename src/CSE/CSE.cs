@@ -129,7 +129,7 @@ public static class CseCompilerServices
                         if(parseResult != null)
                         {
                             root.Childs[i] = parseResult;
-                            root.Childs.RemoveRange(i + 1, parseResult.Childs.Count - 1);
+                            root.Childs.Change(action: System.Collections.Specialized.NotifyCollectionChangedAction.Remove, count: parseResult.Childs.Count - 1, startIndex: i + 1);
                             i--;
                             break;
                         }
