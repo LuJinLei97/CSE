@@ -56,7 +56,7 @@ public class CustomSchemeEngine
         return CseSyntaxTree;
     }
 
-    public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Expression?.Excute();
+    public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Childs?.ForEach(t => t?.Expression?.Excute());
 }
 
 public static class CseCompilerServices
@@ -85,7 +85,7 @@ public static class CseCompilerServices
 
         void ParseToken()
         {
-            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("文本节点"), Syntax.SearchOption.Child);
+            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("文本节点"), Syntax.SearchOption.Child).OrderByDescending(t => t.KindText.Length);
 
             var position = 0;
             while(position < text.Length)
@@ -93,7 +93,6 @@ public static class CseCompilerServices
                 var cseSyntaxNode = new CseSyntaxNode
                 {
                     Text = text[position].ToString(),
-                    Position = position,
                     CseSyntaxTreeNode = unknownNode,
                 };
 
@@ -103,11 +102,11 @@ public static class CseCompilerServices
                     if(parseResult.IsNull() == false)
                     {
                         cseSyntaxNode = parseResult;
-                        cseSyntaxNode.Position = position;
                         break;
                     }
                 }
 
+                cseSyntaxNode.Position = position;
                 position = cseSyntaxNode.EndPosition;
                 root.Childs.Add(cseSyntaxNode);
             }
@@ -129,7 +128,7 @@ public static class CseCompilerServices
                         if(parseResult != null)
                         {
                             root.Childs[i] = parseResult;
-                            root.Childs.RemoveRange(i + 1, parseResult.Childs.Count - 1);
+                            root.Childs.Change(action: System.Collections.Specialized.NotifyCollectionChangedAction.Remove, count: parseResult.Childs.Count - 1, startIndex: i + 1);
                             i--;
                             break;
                         }

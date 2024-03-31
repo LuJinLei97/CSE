@@ -43,7 +43,8 @@ internal class Program
 
         while(ConsoleUtility.TipAndReadLine("cse text:").Out(out var line).Trim().Equals("esc", StringComparison.CurrentCultureIgnoreCase) == false)
         {
-            foreach(var node in CseCompilerServices.ParseText(line, cse).Childs)
+            var root = CseCompilerServices.ParseText(line, cse);
+            foreach(var node in root.Childs)
             {
                 Console.WriteLine(node.ToString());
                 Console.WriteLine(node?.Expression?.Excute());
