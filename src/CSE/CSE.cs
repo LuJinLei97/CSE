@@ -75,7 +75,7 @@ public static class CseCompilerServices
 
         // 解析
         // 1.文本节点匹配
-        // 2.语句节点按优先级从高到低匹配,再按节点从左到右匹配,直到无匹配项
+        // 2.语句节点多个同优先级节点为一组,组按优先级从高到低排列,循环组从左到右匹配,直到无匹配项
 
         ParseToken();
         MergeNodes();
