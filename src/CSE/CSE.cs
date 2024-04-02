@@ -85,7 +85,7 @@ public static class CseCompilerServices
 
         void ParseToken()
         {
-            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("文本节点"), Syntax.SearchOption.Child).OrderByDescending(t => t.KindText.Length);
+            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("文本节点"), Syntax.SearchOption.TopTreeNode, count: 1).FirstOrDefault().EnumerateNodes(searchOption: Syntax.SearchOption.Child).OrderByDescending(t => t.KindText.Length);
 
             var position = 0;
             while(position < text.Length)
@@ -114,7 +114,7 @@ public static class CseCompilerServices
 
         void MergeNodes()
         {
-            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("语句节点"), Syntax.SearchOption.Child).GroupBy(t => t.Parent).Select(t => t.Key);
+            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("语句节点"), Syntax.SearchOption.TopTreeNode, count: 1).FirstOrDefault().EnumerateNodes(searchOption: Syntax.SearchOption.Child).GroupBy(t => t.Parent).Select(t => t.Key);
 
             var isMatched = false;
             do
