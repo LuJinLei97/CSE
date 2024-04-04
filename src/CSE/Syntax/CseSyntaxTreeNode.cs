@@ -27,7 +27,6 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
                 return new CseSyntaxNode()
                 {
                     CseSyntaxTreeNode = this,
-                    Text = matchedItem,
                 };
             }
         }

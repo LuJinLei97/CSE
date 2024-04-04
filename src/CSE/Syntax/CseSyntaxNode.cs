@@ -13,7 +13,7 @@ namespace CSE.Syntax;
 /// </summary>
 public class CseSyntaxNode : TreeNode<CseSyntaxNode>, ICloneable
 {
-    public virtual string Text { get => Childs?.Aggregate(string.Empty, (r, t) => $"{r}{t?.Text}") ?? text; set => text = value; }
+    public virtual string Text { get => Childs?.Aggregate(string.Empty, (r, t) => $"{r}{t?.Text}") ?? CseSyntaxTreeNode?.KindText ?? text; set => text = value; }
     protected string text;
 
     [JsonIgnore]

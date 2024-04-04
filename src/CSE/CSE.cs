@@ -114,23 +114,27 @@ public static class CseCompilerServices
 
         void MergeNodes()
         {
-            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("语句节点"), Syntax.SearchOption.TopTreeNode, count: 1).FirstOrDefault().EnumerateNodes(searchOption: Syntax.SearchOption.Child).GroupBy(t => t.Parent).Select(t => t.Key);
+            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("语句节点"), Syntax.SearchOption.TopTreeNode, count: 1).FirstOrDefault().EnumerateNodes(searchOption: Syntax.SearchOption.Child).GroupBy(t => t.Parent).Select(t => t.Key).GroupBy(t => t.Parent, (t, t1) => t1.GroupBy(t2 => t2.RelativePriority));
 
             var isMatched = false;
             do
             {
                 isMatched = false;
-                for(var i = 0; i < root.Childs.Count; i++)
+                foreach(var priorityGroup in cseSyntaxParsers.SelectMany(t => t))
                 {
-                    foreach(var cseSyntaxParser in cseSyntaxParsers)
+                    for(var i = 0; i < root.Childs.Count; i++)
                     {
-                        var parseResult = cseSyntaxParser.Match(default, root.Childs.ToArray().AsMemory(i));
-                        if(parseResult != null)
+                        foreach(var cseSyntaxParser in priorityGroup)
                         {
-                            root.Childs[i] = parseResult;
-                            root.Childs.Change(action: System.Collections.Specialized.NotifyCollectionChangedAction.Remove, count: parseResult.Childs.Count - 1, startIndex: i + 1);
-                            i--;
-                            break;
+                            var parseResult = cseSyntaxParser.Match(default, root.Childs.ToArray().AsMemory(i));
+                            if(parseResult != null)
+                            {
+                                isMatched = true;
+                                root.Childs[i] = parseResult;
+                                root.Childs.Change(action: System.Collections.Specialized.NotifyCollectionChangedAction.Remove, maxCount: parseResult.Childs.Count - 1, startIndex: i + 1);
+                                i--;
+                                break;
+                            }
                         }
                     }
                 }
