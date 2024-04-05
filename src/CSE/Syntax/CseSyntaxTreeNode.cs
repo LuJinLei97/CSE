@@ -63,6 +63,8 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
     public virtual Expression Expression { get => expression ?? Parent?.Expression; set => expression = value; }
     protected Expression expression;
 
+    public virtual ParseProperties ParseProperties { get; set; }
+
     public virtual void Load(JToken cseSyntaxTreeNodeJToken)
     {
         KindText = (cseSyntaxTreeNodeJToken["title"].Value<string>().Trim().Out(out var k).StartsWith("\"") && k.EndsWith("\"")) ? k.Substring(1, k.Length - 2) : k;
@@ -84,11 +86,23 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
                 var (S, E) = summaryRanges[summary["id"].Value<string>()].Split(new[] { "(", ",", ")" }, StringSplitOptions.RemoveEmptyEntries).Do(t => (S: int.Parse(t[0]), E: int.Parse(t[1])));
                 foreach(var child in Childs.GetRange(S, E - S + 1))
                 {
-                    child.Expression = new()
+                    if(GetChild(GetChild(summary, "Expression")).FirstOrDefault().Out(out var expression).IsNull() == false)
                     {
-                        MethodName = summary["title"].Value<string>().Trim('"'),
-                        ChildValueIndexs = GetChild(summary)?.Select(t => int.Parse(t["title"].Value<string>())).ToArray(),
-                    };
+                        child.Expression = new()
+                        {
+                            MethodName = expression["title"].Value<string>().Trim('"'),
+                            ChildValueIndexs = GetChild(expression)?.Select(t => int.Parse(t["title"].Value<string>())).ToArray(),
+                        };
+                    }
+
+                    if(GetChild(GetChild(summary, "解析属性"), "子语句解析").Out(out var subtextParsing).IsNull() == false)
+                    {
+                        child.ParseProperties = new()
+                        {
+                            是否子语句解析 = true,
+                            匹配类型 = Enum.TryParse(GetChild(GetChild(subtextParsing, "匹配类型")).FirstOrDefault()["title"].Value<string>(), out 匹配类型 e).Return(e)
+                        };
+                    }
                 }
             }
         } else
@@ -97,7 +111,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
             this?.MatchPatterns?.Add(KindText);
         }
 
-        JToken GetChild(JToken parent, string childName = default) => parent["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
+        JToken GetChild(JToken parent, string childName = default) => parent?["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
     }
 
     public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode> predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue)

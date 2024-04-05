@@ -78,7 +78,7 @@ public static class CseCompilerServices
         // 2.语句节点多个同优先级节点为一组,组按优先级从高到低排列,循环组从左到右匹配,直到无匹配项
 
         ParseToken();
-        MergeNodes();
+        MergeNodes(customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("语句节点"), Syntax.SearchOption.TopTreeNode, count: 1).FirstOrDefault().EnumerateNodes(searchOption: Syntax.SearchOption.Child).GroupBy(t => t.Parent).Select(t => t.Key).GroupBy(t => t.Parent, (t, t1) => t1.GroupBy(t2 => t2.RelativePriority)));
 
     Result:
         return root;
@@ -112,20 +112,48 @@ public static class CseCompilerServices
             }
         }
 
-        void MergeNodes()
+        void MergeNodes(IEnumerable<IEnumerable<IGrouping<int, CseSyntaxTreeNode>>> cseSyntaxParsers, int startIndex = 0, int maxIndex = int.MaxValue)
         {
-            var cseSyntaxParsers = customSchemeEngine.CseSyntaxTree.EnumerateNodes(t => t.IsKind("语句节点"), Syntax.SearchOption.TopTreeNode, count: 1).FirstOrDefault().EnumerateNodes(searchOption: Syntax.SearchOption.Child).GroupBy(t => t.Parent).Select(t => t.Key).GroupBy(t => t.Parent, (t, t1) => t1.GroupBy(t2 => t2.RelativePriority));
-
             var isMatched = false;
             do
             {
                 isMatched = false;
                 foreach(var priorityGroup in cseSyntaxParsers.SelectMany(t => t))
                 {
-                    for(var i = 0; i < root.Childs.Count; i++)
+                    for(var i = startIndex; i < root.Childs.Count && i <= maxIndex; i++)
                     {
                         foreach(var cseSyntaxParser in priorityGroup)
                         {
+                            if(cseSyntaxParser?.ParseProperties?.是否子语句解析 == true && cseSyntaxParser?.ParseProperties?.匹配类型 == 匹配类型.最短成对匹配)
+                            {
+                                if(cseSyntaxParser.MatchPatterns.Count >= 2)
+                                {
+                                    var isPaired = false;
+                                    var (s, e) = (-1, -1);
+                                    for(var i1 = startIndex; i1 < root.Childs.Count && i1 <= maxIndex; i1++)
+                                    {
+                                        if(root.Childs[i1].CseSyntaxTreeNode.IsKind(cseSyntaxParser.MatchPatterns.FirstOrDefault()))
+                                        {
+                                            s = i1;
+                                        } else if(root.Childs[i1].CseSyntaxTreeNode.IsKind(cseSyntaxParser.MatchPatterns.LastOrDefault()))
+                                        {
+                                            e = i1;
+                                        }
+
+                                        if(s < e && s != -1 && e != -1)
+                                        {
+                                            isPaired = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if(isPaired)
+                                    {
+                                        MergeNodes(cseSyntaxParsers, s + 1, e - 1);
+                                    }
+                                }
+                            }
+
                             var parseResult = cseSyntaxParser.Match(default, root.Childs.ToArray().AsMemory(i));
                             if(parseResult != null)
                             {
