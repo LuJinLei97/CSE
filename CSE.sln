@@ -3,14 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34601.278
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSE", "src\CSE\CSE.csproj", "{A3F73582-656B-4366-8362-1C8D65928E8D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSE", "src\CSE\CSE.csproj", "{A3F73582-656B-4366-8362-1C8D65928E8D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{34CC7DAC-2B1C-42BA-8EF3-2F05F184071A}"
 	ProjectSection(SolutionItems) = preProject
+		CSE语法树.xmind = CSE语法树.xmind
 		Directory.Build.props = Directory.Build.props
+		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSEI", "src\CSEI\CSEI.csproj", "{59BC7E57-98CF-47F3-ABA9-1E1BECF0DADD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSEI", "src\CSEI\CSEI.csproj", "{59BC7E57-98CF-47F3-ABA9-1E1BECF0DADD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
