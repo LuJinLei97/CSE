@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{34CC7DAC-2B1C-42BA-8EF3-2F05F184071A}"
 	ProjectSection(SolutionItems) = preProject
 		CSE语法树.pdf = CSE语法树.pdf
+		CSE语法树.png = CSE语法树.png
 		CSE语法树.xmind = CSE语法树.xmind
 		Directory.Build.props = Directory.Build.props
 		README.md = README.md
