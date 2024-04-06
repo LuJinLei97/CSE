@@ -52,7 +52,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
                 return new CseSyntaxNode()
                 {
                     CseSyntaxTreeNode = this,
-                    Childs = matchNodes.Select(t => t.Clone()).ToObservableCollection(),
+                    Childs = matchNodes.Concat(ignoredNodes).Select(t => t.Clone()).ToObservableCollection(),
                 };
             }
         }
