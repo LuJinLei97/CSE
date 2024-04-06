@@ -4,7 +4,7 @@
 
 Custom Scheme Engine 是一个编程语言解析和执行引擎,主要功能按照配置文件解析语法树,然后对语法块执行,执行功能架构在CSE.CseCLR(高级编程语言提供的功能)上.这个引擎只要配置得当,能解析任何文件为编程语言,换句话说就是能实现任何编程语言的语法,外加用户自己新创造的编程语言.
 
-功能改进,将语法的配置通过xmind来实现,可以直观表现语法树且优先级清晰,不懂编程的人只要逻辑理解能力足够,也能编写出强大的功能,示例文件如[CSE语法树.xmind(要用最新版的xmind软件打开)](https://github.com/LuJinLei97/CSE/blob/main/CSE语法树.xmind),已实现不带负数的数学表达式计算,带括号的(1+2)*3也已实现
+功能改进,将语法的配置通过xmind来实现,可以直观表现语法树且优先级清晰,不懂编程的人只要逻辑理解能力足够,也能编写出强大的功能,示例文件如[CSE语法树.xmind(要用最新版的xmind软件打开)](https://github.com/LuJinLei97/CSE/blob/main/CSE语法树.xmind)和[CSE语法树.pdf](https://github.com/LuJinLei97/CSE/blob/main/CSE语法树.pdf),已实现不带负数的数学表达式计算,带括号的(1+2)*3也已实现
 
 ### 示例讲解
 
