@@ -11,7 +11,7 @@ using Newtonsoft.Json.Linq;
 namespace CSE.Syntax;
 public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 {
-    public virtual string? KindText { get; set; }
+    public virtual string KindText { get; set; }
 
     public virtual bool IsKind(string kindText) => kindText == KindText || Parent?.IsKind(kindText) == true;
 
@@ -19,7 +19,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 
     public virtual int RelativePriority { get; set; }
 
-    public virtual CseSyntaxNode? Match(ReadOnlyMemory<char> text, ReadOnlyMemory<CseSyntaxNode> nodes)
+    public virtual CseSyntaxNode Match(ReadOnlyMemory<char> text, ReadOnlyMemory<CseSyntaxNode> nodes)
     {
         if(text.Length.Out(out var maxTextLength) >= 1)
         {
@@ -63,9 +63,9 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
     }
 
     public virtual Expression Expression { get => expression ?? Parent?.Expression; set => expression = value; }
-    protected Expression? expression;
+    protected Expression expression;
 
-    public virtual ParseProperties? ParseProperties { get; set; }
+    public virtual ParseProperties ParseProperties { get; set; }
 
     public virtual void Load(JToken cseSyntaxTreeNodeJToken)
     {
@@ -113,7 +113,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
             this?.MatchPatterns?.Add(KindText);
         }
 
-        JToken GetChild(JToken parent, string? childName = default) => parent?["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
+        JToken GetChild(JToken parent, string childName = default) => parent?["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
     }
 
     public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode> predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue / 2)

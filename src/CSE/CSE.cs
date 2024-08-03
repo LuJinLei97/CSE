@@ -46,7 +46,7 @@ public class CustomSchemeEngine
                     var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
 
                     CseSyntaxTree = new CseSyntaxTreeNode().Do(t => t.Load(syntaxTree));
-                } catch(Exception)
+                } catch(Exception e)
                 {
                     //throw e;
                 }
@@ -61,7 +61,7 @@ public class CustomSchemeEngine
 
 public static class CseCompilerServices
 {
-    public static CseSyntaxNode ParseText(string text, CustomSchemeEngine? customSchemeEngine = default)
+    public static CseSyntaxNode ParseText(string text, CustomSchemeEngine customSchemeEngine = default)
     {
         var root = new CseSyntaxNode() { Childs = [] };
 
