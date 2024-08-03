@@ -3,11 +3,11 @@
 namespace CSE.Classes;
 public class Expression : ICloneable, IEquatable<Expression>
 {
-    public virtual string MethodName { get; set; }
+    public virtual required string? MethodName { get; set; }
 
-    public virtual int[] ChildValueIndexs { get; set; }
+    public virtual required int[]? ChildValueIndexs { get; set; }
 
-    public virtual object Excute()
+    public virtual object? Excute()
     {
         if(MethodName == null)
         {
@@ -33,6 +33,6 @@ public class Expression : ICloneable, IEquatable<Expression>
 
     object ICloneable.Clone() => Clone();
 
-    public virtual CseSyntaxNode CseSyntaxNode { get; set; }
+    public virtual required CseSyntaxNode? CseSyntaxNode { get; set; }
     #endregion
 }

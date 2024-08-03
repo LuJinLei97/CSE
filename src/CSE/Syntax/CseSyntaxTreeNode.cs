@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 namespace CSE.Syntax;
 public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 {
-    public virtual string KindText { get; set; }
+    public virtual string? KindText { get; set; }
 
     public virtual bool IsKind(string kindText) => kindText == KindText || Parent?.IsKind(kindText) == true;
 
@@ -17,7 +17,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
 
     public virtual int RelativePriority { get; set; }
 
-    public virtual CseSyntaxNode Match(ReadOnlyMemory<char> text, ReadOnlyMemory<CseSyntaxNode> nodes)
+    public virtual CseSyntaxNode? Match(ReadOnlyMemory<char> text, ReadOnlyMemory<CseSyntaxNode> nodes)
     {
         if(text.Length.Out(out var maxTextLength) >= 1)
         {
@@ -61,9 +61,9 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
     }
 
     public virtual Expression Expression { get => expression ?? Parent?.Expression; set => expression = value; }
-    protected Expression expression;
+    protected Expression? expression;
 
-    public virtual ParseProperties ParseProperties { get; set; }
+    public virtual ParseProperties? ParseProperties { get; set; }
 
     public virtual void Load(JToken cseSyntaxTreeNodeJToken)
     {
@@ -77,14 +77,14 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
             {
                 var (S, E) = boundary["range"].Value<string>().Split(new[] { "(", ",", ")" }, StringSplitOptions.RemoveEmptyEntries).Do(t => (S: int.Parse(t[0]), E: int.Parse(t[1])));
                 boundary["title"].Value<string>().TrimStart().Out(out var ps);
-                Childs.GetRange(S, E - S + 1).ForEach(t => t.RelativePriority = int.Parse(ps));
+                Enumerable.Range(S, E - S + 1).ForEachDo(t => Childs[t].RelativePriority = int.Parse(ps));
             }
 
             var summaryRanges = cseSyntaxTreeNodeJToken["summaries"].GetSelfOrEmpty().ToDictionary(t => t["topicId"].Value<string>(), t => t["range"].Value<string>());
             foreach(var summary in summaryRanges.IsNullOrEmpty() == false ? cseSyntaxTreeNodeJToken["children"]["summary"] : Enumerable.Empty<JToken>())
             {
                 var (S, E) = summaryRanges[summary["id"].Value<string>()].Split(new[] { "(", ",", ")" }, StringSplitOptions.RemoveEmptyEntries).Do(t => (S: int.Parse(t[0]), E: int.Parse(t[1])));
-                foreach(var child in Childs.GetRange(S, E - S + 1))
+                foreach(var child in Enumerable.Range(S, E - S + 1).ForEach(t => Childs[t]))
                 {
                     if(GetChild(GetChild(summary, "Expression")).FirstOrDefault().Out(out var expression).IsNull() == false)
                     {
@@ -111,10 +111,10 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
             this?.MatchPatterns?.Add(KindText);
         }
 
-        JToken GetChild(JToken parent, string childName = default) => parent?["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
+        JToken GetChild(JToken parent, string? childName = default) => parent?["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
     }
 
-    public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode> predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue)
+    public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode>? predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue)
     {
         if(Childs.IsNull() || count <= 0)
         {

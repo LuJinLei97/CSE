@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFrameworks>net4.8;net8.0-windows</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -19,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CSE\CSE.csproj" />
+    <PackageReference Include="JinLei" Version="2.35.0" />
   </ItemGroup>
 
 </Project>

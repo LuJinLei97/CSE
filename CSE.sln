@@ -16,12 +16,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSEI", "src\CSEI\CSEI.csproj", "{59BC7E57-98CF-47F3-ABA9-1E1BECF0DADD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomScriptingEngine", "src\CustomScriptingEngine\CustomScriptingEngine.csproj", "{3394FB07-6786-4339-9512-6A46738AF619}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3394FB07-6786-4339-9512-6A46738AF619}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3394FB07-6786-4339-9512-6A46738AF619}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3394FB07-6786-4339-9512-6A46738AF619}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3394FB07-6786-4339-9512-6A46738AF619}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A3F73582-656B-4366-8362-1C8D65928E8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A3F73582-656B-4366-8362-1C8D65928E8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A3F73582-656B-4366-8362-1C8D65928E8D}.Release|Any CPU.ActiveCfg = Release|Any CPU

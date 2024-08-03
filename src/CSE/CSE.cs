@@ -46,7 +46,7 @@ public class CustomSchemeEngine
                     var syntaxTree = JToken.Parse(jsonString)[0]["rootTopic"];
 
                     CseSyntaxTree = new CseSyntaxTreeNode().Do(t => t.Load(syntaxTree));
-                } catch(Exception e)
+                } catch(Exception)
                 {
                     //throw e;
                 }
@@ -56,12 +56,12 @@ public class CustomSchemeEngine
         return CseSyntaxTree;
     }
 
-    public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Childs?.ForEach(t => t?.Expression?.Excute());
+    public virtual object? RunText(string text) => CseCompilerServices.ParseText(text, this)?.Childs?.ForEach(t => t?.Expression?.Excute());
 }
 
 public static class CseCompilerServices
 {
-    public static CseSyntaxNode ParseText(string text, CustomSchemeEngine customSchemeEngine = default)
+    public static CseSyntaxNode ParseText(string text, CustomSchemeEngine? customSchemeEngine = default)
     {
         var root = new CseSyntaxNode() { Childs = [] };
 

@@ -1,7 +1,7 @@
 ﻿namespace CSE.Classes;
 public class Method
 {
-    public virtual string Name { get; set; }
+    public virtual required string? Name { get; set; }
 
-    public virtual Delegate Delegate { get; set; }
+    public virtual required Delegate? Delegate { get; set; }
 }
