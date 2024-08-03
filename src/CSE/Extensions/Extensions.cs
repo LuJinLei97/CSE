@@ -6,5 +6,5 @@ namespace CSE.Extensions;
 
 public static partial class Extensions
 {
-    public static ObservableCollection<T> ToObservableCollection<T>(this IEnumerable<T> values) => new(values.GetSelfOrEmpty());
+    public static ObservableCollection<T> ToObservableCollection<T>(this IEnumerable<T> values) => values.ToTCollection<ObservableCollection<T>, T>();
 }

@@ -1,4 +1,6 @@
-﻿using CSE.Classes;
+﻿using System.Collections.Immutable;
+
+using CSE.Classes;
 using CSE.Extensions;
 
 using JinLei.Classes;
@@ -47,7 +49,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
                 (ignoredKindTexts.Any(t => nodes.Span[i].CseSyntaxTreeNode.IsKind(t)) ? ignoredNodes : matchNodes).Add(nodes.Span[i]);
             }
 
-            if(matchNodes.Count == MatchPatterns.Count && MatchPatterns.ForEach((t, i) => matchNodes[i].CseSyntaxTreeNode.IsKind(t)).All(t => t))
+            if(matchNodes.Count == MatchPatterns.Count && MatchPatterns.ForEachDo((t, i) => matchNodes[i].CseSyntaxTreeNode.IsKind(t)).All(t => t))
             {
                 return new CseSyntaxNode()
                 {
@@ -77,14 +79,14 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
             {
                 var (S, E) = boundary["range"].Value<string>().Split(new[] { "(", ",", ")" }, StringSplitOptions.RemoveEmptyEntries).Do(t => (S: int.Parse(t[0]), E: int.Parse(t[1])));
                 boundary["title"].Value<string>().TrimStart().Out(out var ps);
-                Enumerable.Range(S, E - S + 1).ForEachDo(t => Childs[t].RelativePriority = int.Parse(ps));
+                Childs.ToImmutableList().GetRange(S, E - S + 1).ForEach(t => t.RelativePriority = int.Parse(ps));
             }
 
             var summaryRanges = cseSyntaxTreeNodeJToken["summaries"].GetSelfOrEmpty().ToDictionary(t => t["topicId"].Value<string>(), t => t["range"].Value<string>());
             foreach(var summary in summaryRanges.IsNullOrEmpty() == false ? cseSyntaxTreeNodeJToken["children"]["summary"] : Enumerable.Empty<JToken>())
             {
                 var (S, E) = summaryRanges[summary["id"].Value<string>()].Split(new[] { "(", ",", ")" }, StringSplitOptions.RemoveEmptyEntries).Do(t => (S: int.Parse(t[0]), E: int.Parse(t[1])));
-                foreach(var child in Enumerable.Range(S, E - S + 1).ForEach(t => Childs[t]))
+                foreach(var child in Childs.ToImmutableList().GetRange(S, E - S + 1))
                 {
                     if(GetChild(GetChild(summary, "Expression")).FirstOrDefault().Out(out var expression).IsNull() == false)
                     {
@@ -114,7 +116,7 @@ public class CseSyntaxTreeNode : TreeNode<CseSyntaxTreeNode>
         JToken GetChild(JToken parent, string? childName = default) => parent?["children"]?["attached"]?.Out(out var childs).Return(childName.IsNull() ? childs : childs?.FirstOrDefault(t => t["title"].Value<string>() == childName));
     }
 
-    public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode>? predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue)
+    public virtual IEnumerable<CseSyntaxTreeNode> EnumerateNodes(Predicate<CseSyntaxTreeNode> predicate = default, SearchOption searchOption = SearchOption.TopTreeNodeOnly, int count = int.MaxValue / 2)
     {
         if(Childs.IsNull() || count <= 0)
         {

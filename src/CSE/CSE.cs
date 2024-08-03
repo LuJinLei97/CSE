@@ -56,7 +56,7 @@ public class CustomSchemeEngine
         return CseSyntaxTree;
     }
 
-    public virtual object? RunText(string text) => CseCompilerServices.ParseText(text, this)?.Childs?.ForEach(t => t?.Expression?.Excute());
+    public virtual object RunText(string text) => CseCompilerServices.ParseText(text, this)?.Childs?.ForEachDo(t => t?.Expression?.Excute());
 }
 
 public static class CseCompilerServices
@@ -112,7 +112,7 @@ public static class CseCompilerServices
             }
         }
 
-        void MergeNodes(IEnumerable<IEnumerable<IGrouping<int, CseSyntaxTreeNode>>> cseSyntaxParsers, int startIndex = 0, int maxIndex = int.MaxValue)
+        void MergeNodes(IEnumerable<IEnumerable<IGrouping<int, CseSyntaxTreeNode>>> cseSyntaxParsers, int startIndex = 0, int maxIndex = int.MaxValue / 2)
         {
             var isMatched = false;
             do
